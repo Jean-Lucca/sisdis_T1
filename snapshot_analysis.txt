@@ -1,0 +1,64 @@
+
+Analisando Snapshot 1:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 2:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 3:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 4:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 5:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 6:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 7:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
+
+Analisando Snapshot 8:
+ - Invariante 1 mantida
+ - Invariante 2 mantida
+ - Invariante 3 mantida
+ - Invariante 4 VIOLADA
+ - Invariante 5 mantida
+ - Invariante 6 mantida
