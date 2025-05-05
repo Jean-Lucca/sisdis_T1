@@ -4,9 +4,9 @@ from collections import defaultdict
 
 SNAPSHOT_DIR = './snapshots'
 N = 3
-OUTPUT_FILE = './snapshot_analysis.txt'
+OUTPUT_FILE = './invariantes.txt'
 
-def read_snapshots():
+def read():
     snapshots = defaultdict(dict)
     pattern = re.compile(r'process_(\d+)\.txt')
 
@@ -19,16 +19,16 @@ def read_snapshots():
                 snapshotData = None
                 snapshotId = None
                 for line in f:
-                    if 'Snapshot' in line:
+                    if 'SnapshotId' in line:
                         if snapshotData:
                             snapshots[snapshotId][processId] = snapshotData
                         snapshotId = int(line.strip().split(' ')[1])
                         snapshotData = {'ProcessId': processId, 'SnapshotId': snapshotId, 'Messages': []}
-                    elif 'Estado:' in line:
+                    elif 'ProcessState:' in line:
                         snapshotData['State'] = int(line.strip().split(': ')[1])
-                    elif 'Relógio Lógico:' in line:
+                    elif 'Lcl:' in line:
                         snapshotData['Lcl'] = int(line.strip().split(': ')[1])
-                    elif 'Timestamp de Requisição:' in line:
+                    elif 'Timestamp:' in line:
                         snapshotData['ReqTs'] = int(line.strip().split(': ')[1])
                     elif 'Waiting:' in line:
                         waiting_str = line.strip().split(': ')[1]
@@ -52,8 +52,11 @@ def parse_waiting_list(waiting_str):
 
 def check_invariant_1(snapshot):
     # Inv  1:   no máximo um processo na SC.
-    in_mx_count = sum(1 for s in snapshot.values() if s['State'] == 2)
-    return in_mx_count <= 1
+    count = sum(1 for s in snapshot.values() if s['State'] == 2)
+    if count <= 1:
+        return True
+    else:
+        return False
 
 def check_invariant_2(snapshot):
     # inv  2:  se todos processos estão em "não quero a SC", então todos waitings tem que ser falsos e não deve haver mensagens
@@ -95,7 +98,7 @@ def check_invariant_4(snapshot):
     return True
 
 def check_invariant_5(snapshot):
-    # Invariante 5: Se um processo está na seção crítica, ele não deve estar marcado como waiting em outro processo.
+    # inv 5: Se um processo está na seção crítica, ele não deve estar marcado como waiting em outro processo.
     for p_data in snapshot.values():
         if p_data['State'] == 2:
             for q_data in snapshot.values():
@@ -105,7 +108,7 @@ def check_invariant_5(snapshot):
     return True
 
 def check_invariant_6(snapshot):
-    # Invariante 6: Se um processo está esperando pela SC, seu ReqTs deve ser maior que o ReqTs de todos os processos no estado noMX
+    # inv 6: Se um processo está esperando pela SC, seu ReqTs deve ser maior que o ReqTs de todos os processos no estado noMX
     for p_data in snapshot.values():
         if p_data['State'] == 1:  # wantMX == 1
             for q_data in snapshot.values():
@@ -113,7 +116,7 @@ def check_invariant_6(snapshot):
                     return False
     return True
 
-def analyze_snapshots(snapshots):
+def analyze(snapshots):
     with open(OUTPUT_FILE, 'w') as f:
         for snapshotId, snapshot in snapshots.items():
             result = f"\nAnalisando Snapshot {snapshotId}:\n"
@@ -135,5 +138,5 @@ def analyze_snapshots(snapshots):
             f.write(result)
 
 if __name__ == "__main__":
-    snapshots = read_snapshots()
-    analyze_snapshots(snapshots)
+    snapshots = read()
+    analyze(snapshots)

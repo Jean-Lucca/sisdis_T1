@@ -44,11 +44,11 @@ type DIMEX_Module struct {
 	dbg       bool
 	Pp2plink  *PP2PLink.PP2PLink // acesso a comunicacao enviar por PP2PLinq.Req  e receber por PP2PLinq.Ind
 
-	mutex           sync.Mutex // sincronia de acesso as váriaveis
-	idSnapShot      int64
-	snapshots       map[int64]*SnapshotState // Map de snapshots com ID do snapshot como chave
-	activeSnapshot  bool                     // Flag indicando se o snapshot está ativo
-	markersReceived map[int]bool             // Map para rastrear marcadores recebidos
+	mutex      sync.Mutex // sincronia de acesso as váriaveis
+	idSnapShot int64
+	snapshots  map[int64]*SnapshotState // mapa de snapshots
+	isActive   bool                     // indica se o snapshot está ativo
+	recebido   map[int]bool             // mapa de recebidos
 }
 
 type SnapshotState struct {
@@ -86,10 +86,10 @@ func NewDIMEX(_addresses []string, _id int, _dbg bool) *DIMEX_Module {
 
 		Pp2plink: p2p,
 
-		snapshots:       make(map[int64]*SnapshotState),
-		activeSnapshot:  false,
-		markersReceived: make(map[int]bool),
-		idSnapShot:      0}
+		snapshots:  make(map[int64]*SnapshotState),
+		isActive:   false,
+		recebido:   make(map[int]bool),
+		idSnapShot: 0}
 
 	for i := 0; i < len(dmx.waiting); i++ {
 		dmx.waiting[i] = false
@@ -297,9 +297,9 @@ func (module *DIMEX_Module) outDbg(s string) {
 // ------- Implementação do Snapshot (Chandy-Lamport)
 // ------------------------------------------------------------------------------------
 
-// middleware durante o snapshot
+// guarda as mensagens enquanto o snapshot está ativo
 func (module *DIMEX_Module) messageInterceptor(senderId int, stringMsg string) {
-	if module.activeSnapshot {
+	if module.isActive {
 		for _, snapshot := range module.snapshots {
 			if !snapshot.Waiting[senderId] {
 				snapshot.Messages = append(snapshot.Messages, stringMsg)
@@ -309,8 +309,8 @@ func (module *DIMEX_Module) messageInterceptor(senderId int, stringMsg string) {
 }
 
 func (module *DIMEX_Module) startSnapshot() {
-	// id do snapshot sequencial e único
-	if module.activeSnapshot {
+	// id do snapshot
+	if module.isActive {
 		fmt.Println("Snapshot já está em andamento.")
 		return
 	}
@@ -322,7 +322,7 @@ func (module *DIMEX_Module) startSnapshot() {
 }
 
 func (module *DIMEX_Module) handleSnapshot(msg PP2PLink.PP2PLink_Ind_Message) {
-	senderId, snapshotId := parseMarkerMessage(msg.Message)
+	senderId, snapshotId := messageParser(msg.Message)
 	module.idSnapShot = snapshotId
 	var repeated bool
 	//testa se repetido
@@ -335,7 +335,7 @@ func (module *DIMEX_Module) handleSnapshot(msg PP2PLink.PP2PLink_Ind_Message) {
 
 	// testa se o snapshot já foi gravado
 	if !repeated {
-		module.activeSnapshot = true
+		module.isActive = true
 		module.recordState(snapshotId)
 		fmt.Println("-----  ", module.snapshots[snapshotId].Waiting[senderId])
 		fmt.Println("-----  ", senderId)
@@ -370,8 +370,8 @@ func (module *DIMEX_Module) handleSnapshot(msg PP2PLink.PP2PLink_Ind_Message) {
 	// se todos receberam a mensagem de snapshot termina
 	if allReceived {
 		module.outDbg(fmt.Sprintf("Snapshot %d completo.", snapshotId))
-		module.activeSnapshot = false
-		module.markersReceived = make(map[int]bool) // Limpa para futuros snapshots
+		module.isActive = false
+		module.recebido = make(map[int]bool)
 		module.writeSnapshotToFile(snapshotId)
 	}
 }
@@ -399,11 +399,11 @@ func (module *DIMEX_Module) writeSnapshotToFile(snapshotId int64) {
 	defer file.Close()
 	fmt.Println("snapshot id ", snapshotId)
 	snapshot := module.snapshots[snapshotId]
-	file.WriteString(fmt.Sprintf("Snapshot %d\n", snapshotId))
-	file.WriteString(fmt.Sprintf("Estado: %d\n", snapshot.ProcessState))
-	file.WriteString(fmt.Sprintf("Relógio Lógico: %d\n", snapshot.Lcl))
-	file.WriteString(fmt.Sprintf("Timestamp de Requisição: %d\n", snapshot.ReqTs))
-	file.WriteString(fmt.Sprintf("Receive resps: %v\n", snapshot.Waiting))
+	file.WriteString(fmt.Sprintf("SnapshotId %d\n", snapshotId))
+	file.WriteString(fmt.Sprintf("ProcessState: %d\n", snapshot.ProcessState))
+	file.WriteString(fmt.Sprintf("Lcl: %d\n", snapshot.Lcl))
+	file.WriteString(fmt.Sprintf("ReqTs: %d\n", snapshot.ReqTs))
+	file.WriteString(fmt.Sprintf("Waiting Snapshot: %v\n", snapshot.Waiting))
 	file.WriteString(fmt.Sprintf("Waiting: %v\n", module.waiting))
 	file.WriteString(fmt.Sprintf("NbrResps: %d\n", snapshot.NbrResps))
 	file.WriteString(fmt.Sprintf("Mensagens:\n"))
@@ -414,7 +414,7 @@ func (module *DIMEX_Module) writeSnapshotToFile(snapshotId int64) {
 	file.WriteString("\n")
 }
 
-func parseMarkerMessage(message string) (int, int64) {
+func messageParser(message string) (int, int64) {
 	fmt.Println("Mensagem recebida:", message)
 	parts := strings.Split(message, ":")
 
